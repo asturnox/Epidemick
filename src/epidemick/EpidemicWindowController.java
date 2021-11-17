@@ -248,8 +248,6 @@ public class EpidemicWindowController implements Initializable {
 
         canvas.setOnKeyPressed((e) -> {
             String code = e.getCode().toString();
-            System.out.println(code);
-            System.out.println("ha");
 
             if (code.equals("ENTER") && stageNumber <= 1) {
                 launchStage(stageNumber);
