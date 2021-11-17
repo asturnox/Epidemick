@@ -29,7 +29,6 @@ public class EpidemicObject {
     public void kill() {
         state = "deceased";
         deaths++;
-        System.out.println(deaths);
     }
 
     public void vaccinate() {

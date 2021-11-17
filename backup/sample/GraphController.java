@@ -36,7 +36,6 @@ public class GraphController implements Initializable {
             @Override
             public void handle(ActionEvent actionEvent) {
                 updateGraph();
-                System.out.println("a");
             }
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
