@@ -1,0 +1,143 @@
+package epidemick;
+
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import java.util.ArrayList;
+import java.util.Random;
+
+public class EpidemicObject {
+    public static ArrayList<EpidemicObject> infectedArray = new ArrayList<>();
+    public static ArrayList<EpidemicObject> arrayToInfect = new ArrayList<>();
+    public static EpidemicObject[][] epidemicArray;
+    public static int numRows = 10;
+
+    public static int ticks = 0;
+
+    // 1 - d% = (1 - p)^n
+    // p = 1 - (1 - d%)^(1/n)
+
+    public static int recoveryTime;
+    public static double pValue;
+    public static double dValue;
+
+    public static int deaths = 0;
+
+    public static Random randomizer = new Random();
+
+    public static Canvas canvas = Main.canvas;
+    public static GraphicsContext gc = Main.gc;
+    public static double buffer;
+    String state = "normal";
+    int[] position;
+    int tickWhenInfected;
+
+    EpidemicObject(int i, int j) {
+        this.position = new int[] {i, j};
+    }
+
+    public static void createMap(int n) {
+        numRows = n;
+        buffer = (canvas.getWidth()/numRows) * 0.1;
+        epidemicArray = new EpidemicObject[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                epidemicArray[i][j] = new EpidemicObject(i,j);
+            }
+        }
+    }
+
+    public static void update() {
+        arrayToInfect = new ArrayList<>();
+        ArrayList<EpidemicObject> removedArray = new ArrayList<>();
+
+        for (EpidemicObject infected : infectedArray) {
+            int ticksSinceInfected = ticks - infected.tickWhenInfected;
+            int i = infected.position[0];
+            int j = infected.position[1];
+
+            if (randomizer.nextDouble() <= dValue) {
+                infected.kill();
+                removedArray.add(infected);
+            }
+            else if (ticksSinceInfected >= recoveryTime) {
+                infected.recover();
+                removedArray.add(infected);
+            } else {
+                if (i >= 1) {
+                    epidemicArray[i-1][j].attemptInfect();
+                } if (i <= epidemicArray.length - 2) {
+                    epidemicArray[i+1][j].attemptInfect();
+                } if (j >= 1) {
+                    epidemicArray[i][j-1].attemptInfect();
+                } if (j <= epidemicArray.length - 2) {
+                    epidemicArray[i][j+1].attemptInfect();
+                }
+            }
+        }
+
+        for (EpidemicObject recovered : removedArray) {
+            infectedArray.remove(recovered);
+        }
+
+        infectedArray.addAll(arrayToInfect);
+
+        //Increase ticks for tracking
+        ticks++;
+    }
+
+    public static void render() {
+        gc.setFill(Color.GRAY);
+        gc.fillRect(0,0, canvas.getWidth(), canvas.getHeight());
+        for (int i = 0; i < numRows; i++) {
+            for (int j = 0; j < numRows; j++) {
+                EpidemicObject o = epidemicArray[i][j];
+                String objectState = o.state;
+                Color color = switch (objectState) {
+                    case "infected" -> Color.RED;
+                    case "recovered" -> Color.GREEN;
+                    case "deceased" -> Color.BLACK;
+                    case "normal" -> Color.WHITE;
+                    case "vaccinated" -> Color.CYAN;
+                    case "wall" -> Color.GRAY;
+                    default -> throw new IllegalArgumentException();
+                };
+
+                gc.setFill(color);
+                gc.fillRect(i * (canvas.getHeight()/numRows), j * (canvas.getWidth()/numRows), (canvas.getWidth()/numRows) - buffer, (canvas.getHeight()/numRows) - buffer);
+            }
+        }
+    }
+
+    public void infect() {
+        state = "infected";
+        tickWhenInfected = ticks;
+        arrayToInfect.add(this);
+    }
+
+    public void attemptInfect() {
+        float x = randomizer.nextFloat();
+        if (x <= pValue && state.equals("normal")) {
+            this.infect();
+        }
+    }
+
+    public void recover() {
+        state = "recovered";
+    }
+
+    public void kill() {
+        state = "deceased";
+        deaths++;
+        System.out.println(deaths);
+    }
+
+    public void vaccinate() {
+        state = "vaccinated";
+    }
+
+    public void makeWall() {
+        state = "wall";
+    }
+
+}
