@@ -1,8 +1,6 @@
 package epidemick;
 
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
@@ -10,10 +8,12 @@ import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
-import javafx.util.Duration;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class GraphController implements Initializable {
     private final XYChart.Series<String, Number> deathSeries = new XYChart.Series<>();
@@ -64,12 +64,10 @@ public class GraphController implements Initializable {
         lineChart.getData().add(deathSeries);
         lineChart.getData().add(recoverySeries);
 
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.1), actionEvent -> {
-            updateGraph();
-            System.out.println(EpidemicWindowController.deaths);
-        }));
+        ScheduledExecutorService scheduledExecutorService;
+        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
-        timeline.setCycleCount(Animation.INDEFINITE);
-        timeline.playFromStart();
+        scheduledExecutorService.scheduleAtFixedRate(() -> Platform.runLater(this::updateGraph), 0, 100, TimeUnit.MILLISECONDS);
+
     }
 }
