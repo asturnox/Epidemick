@@ -1,8 +1,6 @@
 package epidemick;
 
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -12,7 +10,6 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
 import java.io.IOException;
 import java.net.URL;
@@ -20,6 +17,9 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Scanner;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Main controller for the epidemic window.
@@ -27,11 +27,15 @@ import java.util.Scanner;
  */
 public class EpidemicWindowController implements Initializable {
     private final ArrayList<EpidemicObject> infectedArray = new ArrayList<>();
-    private ArrayList<EpidemicObject> arrayToInfect = new ArrayList<>();
+    private final ArrayList<EpidemicObject> arrayToInfect = new ArrayList<>();
     private EpidemicObject[][] epidemicArray;
     private int numRows;
     private static final Scanner scanner = new Scanner(System.in);
     private static final Random randomizer = new Random();
+    /**
+     * Delay between each frame, in ms
+     */
+    public static int delay = 100;
 
     /**
      * Number of ticks that have passed since start of epidemic: needed for determining recoveries
@@ -85,11 +89,11 @@ public class EpidemicWindowController implements Initializable {
      * Using epidemic parameters: infects new squares, kills infected squares and recovers infected squares.
      */
     private void update() {
-        arrayToInfect = new ArrayList<>();
+        arrayToInfect.clear();
         ArrayList<EpidemicObject> removedArray = new ArrayList<>();
 
         for (EpidemicObject infected : infectedArray) {
-            int ticksSinceInfected = ticks - infected.tickWhenInfected;
+            int ticksSinceInfected = ticks - infected.tickWhenInfected; // Used for determining recovery
             int i = infected.position[0];
             int j = infected.position[1];
 
@@ -102,7 +106,7 @@ public class EpidemicWindowController implements Initializable {
                 recoveries++;
                 infections--;
                 removedArray.add(infected);
-            } else {
+            } else {    // check all four directions from square, chance to infect
                 if (i >= 1) {
                     attemptInfect(epidemicArray[i - 1][j]);
                 }
@@ -118,8 +122,8 @@ public class EpidemicWindowController implements Initializable {
             }
         }
 
-        for (EpidemicObject recovered : removedArray) {
-            infectedArray.remove(recovered);
+        for (EpidemicObject removed : removedArray) {
+            infectedArray.remove(removed);
         }
 
         infectedArray.addAll(arrayToInfect);
@@ -144,7 +148,7 @@ public class EpidemicWindowController implements Initializable {
     }
 
     /**
-     * Renders the entire grid with the appropriate colour of each square.
+     * Renders the grid with the appropriate colour of each square.
      */
     private void render() {
         gc.setFill(Color.GRAY);
@@ -269,12 +273,21 @@ public class EpidemicWindowController implements Initializable {
      */
     private void launchVisual() {
         openGraph();
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.1), actionEvent -> {
-            update();
-            render();
-        }));
-        timeline.setCycleCount(Animation.INDEFINITE);
-        timeline.playFromStart();
+
+        ScheduledExecutorService updateServiceExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+        });
+
+        ScheduledExecutorService renderServiceExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+        });
+
+        updateServiceExecutor.scheduleAtFixedRate(this::update, 0, delay, TimeUnit.MILLISECONDS);
+        renderServiceExecutor.scheduleAtFixedRate(() -> Platform.runLater(this::render), 0, delay, TimeUnit.MILLISECONDS);
     }
 
     /**

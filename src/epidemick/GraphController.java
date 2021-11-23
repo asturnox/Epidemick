@@ -75,7 +75,11 @@ public class GraphController implements Initializable {
         lineChart.getData().add(recoverySeries);
 
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(); // Create new thread for efficiency
-        scheduledExecutorService.scheduleAtFixedRate(() -> Platform.runLater(this::updateGraph), 0, 100, TimeUnit.MILLISECONDS);
+
+        int delay = EpidemicWindowController.delay;
+        scheduledExecutorService.scheduleAtFixedRate(
+                () -> Platform.runLater(this::updateGraph), delay / 2, delay, TimeUnit.MILLISECONDS);
+            // Use delay / 2 so renderServiceExecutor out of phase
 
     }
 }
