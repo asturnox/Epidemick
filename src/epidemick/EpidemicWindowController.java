@@ -21,43 +21,70 @@ import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Scanner;
 
+/**
+ * Main controller for the epidemic window.
+ * Updates/renders epidemic state and starts main application loop.
+ */
 public class EpidemicWindowController implements Initializable {
-    private ArrayList<EpidemicObject> infectedArray = new ArrayList<>();
+    private final ArrayList<EpidemicObject> infectedArray = new ArrayList<>();
     private ArrayList<EpidemicObject> arrayToInfect = new ArrayList<>();
     private EpidemicObject[][] epidemicArray;
-    private int numRows = 10;
+    private int numRows;
     private static final Scanner scanner = new Scanner(System.in);
     private static final Random randomizer = new Random();
 
+    /**
+     * Number of ticks that have passed since start of epidemic: needed for determining recoveries
+     */
     public static int ticks = 0;
 
+    /**
+     * Epidemic parameters set by user
+     */
     private int recoveryTime;
     private double pValue;
     private double dValue;
 
+    /**
+     * Epidemic statistics
+     */
     public static int infections = 0;
     public static int deaths = 0;
     public static int recoveries = 0;
 
     private GraphicsContext gc;
+
+    /**
+     * Buffer between squares
+     */
     private double buffer;
 
+    /**
+     * Stage of application
+     */
     private int stageNumber = 0;
 
-    public static Scene scene;
-
-    public void createMap(int n) {
+    /**
+     * Initializes the epidemicArray map, a 2D-square array made up of epidemicObject squares.
+     *
+     * @param n length/width of map
+     */
+    private void createMap(int n) {
         numRows = n;
-        buffer = (canvas.getWidth()/numRows) * 0.1;
+        buffer = (canvas.getWidth() / numRows) * 0.1;
         epidemicArray = new EpidemicObject[n][n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                epidemicArray[i][j] = new EpidemicObject(i,j);
+                epidemicArray[i][j] = new EpidemicObject(i, j);
             }
         }
     }
 
-    public void update() {
+    /**
+     * Updates the state of all epidemicObject squares as necessary.
+     * Using epidemic parameters: infects new squares, kills infected squares and recovers infected squares.
+     */
+    private void update() {
         arrayToInfect = new ArrayList<>();
         ArrayList<EpidemicObject> removedArray = new ArrayList<>();
 
@@ -70,21 +97,23 @@ public class EpidemicWindowController implements Initializable {
                 infected.kill();
                 deaths++;
                 removedArray.add(infected);
-            }
-            else if (ticksSinceInfected >= recoveryTime) {
+            } else if (ticksSinceInfected >= recoveryTime) {
                 infected.recover();
                 recoveries++;
                 infections--;
                 removedArray.add(infected);
             } else {
                 if (i >= 1) {
-                    attemptInfect(epidemicArray[i-1][j]);
-                } if (i <= epidemicArray.length - 2) {
-                    attemptInfect(epidemicArray[i+1][j]);
-                } if (j >= 1) {
-                    attemptInfect(epidemicArray[i][j-1]);
-                } if (j <= epidemicArray.length - 2) {
-                    attemptInfect(epidemicArray[i][j+1]);
+                    attemptInfect(epidemicArray[i - 1][j]);
+                }
+                if (i <= epidemicArray.length - 2) {
+                    attemptInfect(epidemicArray[i + 1][j]);
+                }
+                if (j >= 1) {
+                    attemptInfect(epidemicArray[i][j - 1]);
+                }
+                if (j <= epidemicArray.length - 2) {
+                    attemptInfect(epidemicArray[i][j + 1]);
                 }
             }
         }
@@ -99,7 +128,12 @@ public class EpidemicWindowController implements Initializable {
         ticks++;
     }
 
-    public void attemptInfect(EpidemicObject epidemicObject) {
+    /**
+     * Infects a given epidemicObject square probabilistically.
+     *
+     * @param epidemicObject square to be infected
+     */
+    private void attemptInfect(EpidemicObject epidemicObject) {
         float x = randomizer.nextFloat();
 
         if (x <= pValue && epidemicObject.state.equals("normal")) {
@@ -109,9 +143,12 @@ public class EpidemicWindowController implements Initializable {
         }
     }
 
-    public void render() {
+    /**
+     * Renders the entire grid with the appropriate colour of each square.
+     */
+    private void render() {
         gc.setFill(Color.GRAY);
-        gc.fillRect(0,0, canvas.getWidth(), canvas.getHeight());
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
         for (int i = 0; i < numRows; i++) {
             for (int j = 0; j < numRows; j++) {
                 EpidemicObject o = epidemicArray[i][j];
@@ -123,22 +160,22 @@ public class EpidemicWindowController implements Initializable {
                     case "normal" -> Color.WHITE;
                     case "vaccinated" -> Color.CYAN;
                     case "wall" -> Color.GRAY;
-                    default -> throw new IllegalArgumentException();
+                    default -> throw new IllegalStateException();
                 };
 
                 gc.setFill(color);
-                gc.fillRect(i * (canvas.getHeight()/numRows), j * (canvas.getWidth()/numRows), (canvas.getWidth()/numRows) - buffer, (canvas.getHeight()/numRows) - buffer);
+                gc.fillRect(i * (canvas.getHeight() / numRows), j * (canvas.getWidth() / numRows), (canvas.getWidth() / numRows) - buffer, (canvas.getHeight() / numRows) - buffer);
             }
         }
     }
 
-    public void setVaccinated() {
+    private void setVaccinated() {
         System.out.println("Please click on the squares you wish to vaccinate");
         System.out.println("When you are done, please press enter");
     }
 
-    public void setInfected() {
-        System.out.println("Who should be the one, master?");
+    private void setInfected() {
+        System.out.println("Who should be the one?");
         int i = Integer.parseInt(scanner.next());
         int j = Integer.parseInt(scanner.next());
         try {
@@ -147,34 +184,34 @@ public class EpidemicWindowController implements Initializable {
             infectedArray.add(o);
 
         } catch (IndexOutOfBoundsException e) {
-            System.err.println("Invalid index, try again!");
+            System.err.println("Invalid index, index must be in the interval [0," + (numRows - 1) + "], please try again!");
             setInfected();
         }
     }
 
-    public void setPValue() {
-        System.out.println("What p-value?");
-        float p = Float.parseFloat(scanner.next());
-        if (p >= 0 && p <= 1) {
-            pValue = p;
+    private void setPValue() {
+        System.out.println("What % of people should be infected?");
+        double p = Double.parseDouble(scanner.next());
+        if (p >= 0 && p <= 100) {
+            pValue = p / 100.0;
         } else {
-            System.err.println("Invalid p-value, p-value must be in the interval [0,1]. Please try again:");
+            System.err.println("Invalid p-value, p-value must be in the interval [0,100]. Please try again:");
             setPValue();
         }
     }
 
-    public void setDValue() {
+    private void setDValue() {
         System.out.println("What % of people should die?");
-        float d = Float.parseFloat(scanner.next());
+        double d = Double.parseDouble(scanner.next()) / 100.0;
         if (d >= 0 && d <= 1) {
-            dValue = 1 - Math.pow(1-d, 1.0/recoveryTime);
+            dValue = 1 - Math.pow(1 - d, 1.0 / recoveryTime);
         } else {
-            System.err.println("Invalid death percentage, d-value must be in the interval [0,1]. Please try again:");
+            System.err.println("Invalid death percentage, d-value must be in the interval [0,100]. Please try again:");
             setDValue();
         }
     }
 
-    public void setRecoveryTime() {
+    private void setRecoveryTime() {
         System.out.println("How many ticks should it take to recover?");
         int ticks = scanner.nextInt();
         if (ticks >= 1) {
@@ -185,7 +222,10 @@ public class EpidemicWindowController implements Initializable {
         }
     }
 
-    public void setUp() {
+    /**
+     * Sets epidemic parameters from user (square infected, infection rate, recovery time, death rate)
+     */
+    private void setUp() {
         System.out.println("How many rows, master?");
         createMap(Integer.parseInt(scanner.next()));
         setInfected();
@@ -195,17 +235,17 @@ public class EpidemicWindowController implements Initializable {
         scanner.close();
     }
 
-    public void createWall(int squareX, int squareY) {
-        epidemicArray[squareX][squareY].makeWall();
-        render();
-    }
-
-    public void setQuarantineZone() {
+    private void setQuarantineZone() {
         System.out.println("Please click on the squares you wish to wall");
         System.out.println("When you are done, please press enter");
     }
 
-    public void launchStage(int stageNumber) {
+    /**
+     * Determines which of the two stages(quarantining or main loop) should be launched
+     *
+     * @param stageNumber which stage the game is in
+     */
+    private void launchStage(int stageNumber) {
         if (stageNumber == 0) {
             setQuarantineZone();
         } else if (stageNumber == 1) {
@@ -213,12 +253,21 @@ public class EpidemicWindowController implements Initializable {
         }
     }
 
-    public void vaccinateSquare(int squareX, int squareY) {
+    private void vaccinateSquare(int squareX, int squareY) {
         epidemicArray[squareX][squareY].vaccinate();
         render();
     }
 
-    public void launchVisual() {
+    private void createWall(int squareX, int squareY) {
+        epidemicArray[squareX][squareY].makeWall();
+        render();
+    }
+
+    /**
+     * Launches the visual components of the application: Graph and Epidemic windows.
+     * Sets the refresh rate for the Epidemic Window.
+     */
+    private void launchVisual() {
         openGraph();
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.1), actionEvent -> {
             update();
@@ -228,7 +277,10 @@ public class EpidemicWindowController implements Initializable {
         timeline.playFromStart();
     }
 
-    public void openGraph() {
+    /**
+     * Opens the epidemic statistics graph window and initializes it.
+     */
+    private void openGraph() {
         Parent root;
         try {
             root = FXMLLoader.load(Main.class.getResource("GraphWindow.fxml"));
@@ -236,20 +288,22 @@ public class EpidemicWindowController implements Initializable {
             stage.setTitle("Graph");
             stage.setScene(new Scene(root, 600, 500));
             stage.show();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
-    public void setControls() {
+    /**
+     * Sets the controls of canvas for setting vaccinated and walled squares.
+     */
+    private void setControls() {
         canvas.setFocusTraversable(true);
 
         canvas.setOnKeyPressed((e) -> {
             String code = e.getCode().toString();
 
-            if (code.equals("ENTER") && stageNumber <= 1) {
+            if (code.equals("ENTER") && stageNumber <= 1) { // If user types ENTER, we advance onto the wall stage
                 launchStage(stageNumber);
                 stageNumber++;
             }
@@ -273,18 +327,15 @@ public class EpidemicWindowController implements Initializable {
     @FXML
     Canvas canvas;
 
+    /**
+     * Sets up epidemic parameters, squares infected, vaccinated and walled. Leads to the start of main game loop.
+     */
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         gc = canvas.getGraphicsContext2D();
 
         setControls();
-
-        System.out.println("How many rows, master?");
-        createMap(Integer.parseInt(scanner.next()));
-        setInfected();
-        setPValue();
-        setRecoveryTime();
-        setDValue();
+        setUp();
         scanner.close();
 
         render();

@@ -38,19 +38,16 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox prefHeight="500.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="epidemick.GraphController">
-  <children>
-    <AnchorPane maxHeight="-1.0" maxWidth="-1.0" prefHeight="500.0" prefWidth="600.0" VBox.vgrow="ALWAYS">
-         <children>
-            <LineChart fx:id="lineChart" prefHeight="500.0" prefWidth="600.0">
-              <xAxis>
-                <CategoryAxis side="BOTTOM" />
-              </xAxis>
-              <yAxis>
-                <NumberAxis side="LEFT" />
-              </yAxis>
-            </LineChart>
-         </children>
+<VBox prefHeight="500.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="epidemick.GraphController">
+    <AnchorPane prefHeight="500.0" prefWidth="600.0" VBox.vgrow="ALWAYS">
+        <LineChart fx:id="lineChart" prefHeight="500.0" prefWidth="600.0">
+            <xAxis>
+                <CategoryAxis side="BOTTOM"/>
+            </xAxis>
+            <yAxis>
+                <NumberAxis side="LEFT"/>
+            </yAxis>
+        </LineChart>
     </AnchorPane>
-  </children>
 </VBox>

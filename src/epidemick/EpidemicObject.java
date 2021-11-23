@@ -1,5 +1,8 @@
 package epidemick;
 
+/**
+ * Represents a square on the game grid.
+ */
 public class EpidemicObject {
     public String state = "normal";
     public int[] position;
@@ -11,7 +14,7 @@ public class EpidemicObject {
 
     public void infect(int ticks) {
         state = "infected";
-        tickWhenInfected = ticks;
+        tickWhenInfected = ticks; // store to determine when this should recover.
     }
 
     public void recover() {
